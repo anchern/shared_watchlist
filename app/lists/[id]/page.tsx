@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../lib/auth';
+import { authOptions } from '@/lib/auth';
 
 async function getList(id: string) {
   const res = await fetch(`${process.env.NEXTAUTH_URL}/api/watchlists/${id}`, {
