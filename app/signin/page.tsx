@@ -9,7 +9,11 @@ export default function SignIn() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const res = await signIn('credentials', { redirect: false, email, password });
+    const res = await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+    });
     if (res?.error) setError(res.error);
     else window.location.href = '/';
   }
@@ -31,9 +35,18 @@ export default function SignIn() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+      <button
+        type="submit"
+        className="bg-blue-500 text-white px-4 py-2 rounded"
+      >
         Sign in
       </button>
+      <p className="mt-4 text-sm">
+        Don’t have an account?{' '}
+        <a className="underline" href="/signup">
+          Sign up
+        </a>
+      </p>
     </form>
   );
 }
