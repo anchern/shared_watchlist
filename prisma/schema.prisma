@@ -8,27 +8,28 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  bio           String?
-  passwordHash  String?
-  friends       Friendship[] @relation("UserFriends")
-  friendOf      Friendship[] @relation("FriendOf")
-  watchlists    Watchlist[]
-  comments      Comment[]
-  ratings       Rating[]
-  sessions      Session[]
-  accounts      Account[]
+  id             String                  @id @default(cuid())
+  name           String?
+  email          String?                 @unique
+  emailVerified  DateTime?
+  image          String?
+  bio            String?
+  passwordHash   String?
+  friends        Friendship[]            @relation("UserFriends")
+  friendOf       Friendship[]            @relation("FriendOf")
+  watchlists     Watchlist[]
+  collaborations WatchlistCollaborator[]
+  comments       Comment[]
+  ratings        Rating[]
+  sessions       Session[]
+  accounts       Account[]
 }
 
 model Friendship {
-  id       String   @id @default(cuid())
-  user     User     @relation("UserFriends", fields: [userId], references: [id])
+  id       String @id @default(cuid())
+  user     User   @relation("UserFriends", fields: [userId], references: [id])
   userId   String
-  friend   User     @relation("FriendOf", fields: [friendId], references: [id])
+  friend   User   @relation("FriendOf", fields: [friendId], references: [id])
   friendId String
   status   String
 
@@ -36,32 +37,32 @@ model Friendship {
 }
 
 model Watchlist {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  owner       User     @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  visibility  String   @default("private")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String                  @id @default(cuid())
+  name          String
+  description   String?
+  owner         User                    @relation(fields: [ownerId], references: [id])
+  ownerId       String
+  visibility    String                  @default("private")
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
   collaborators WatchlistCollaborator[]
-  items       WatchlistItem[]
+  items         WatchlistItem[]
 
   @@index([ownerId])
 }
 
 model WatchlistCollaborator {
-  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
   watchlistId String
-  user        User      @relation(fields: [userId], references: [id])
   userId      String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
   role        String
 
   @@unique([watchlistId, userId])
 }
 
 model MediaItem {
-  imdbId     String @id
+  imdbId     String          @id
   title      String
   type       String
   year       String?
@@ -83,40 +84,42 @@ model WatchlistItem {
   status      String?   @default("planned")
   createdAt   DateTime  @default(now())
   position    Int       @default(0)
-  comments    Comment[]
-  ratings     Rating[]
+  comments    Comment[] @relation("ItemComments")
+  ratings     Rating[]  @relation("ItemRatings")
 
   @@id([watchlistId, imdbId])
   @@index([watchlistId, position])
 }
 
 model Comment {
-  id          String    @id @default(cuid())
-  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
+  id          String   @id @default(cuid())
   watchlistId String
-  media       MediaItem @relation(fields: [imdbId], references: [imdbId])
   imdbId      String
-  user        User      @relation(fields: [userId], references: [id])
   userId      String
   text        String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
+
+  item WatchlistItem @relation("ItemComments", fields: [watchlistId, imdbId], references: [watchlistId, imdbId])
+  user User          @relation(fields: [userId], references: [id])
+
+  @@index([watchlistId, imdbId])
 }
 
 model Rating {
-  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
   watchlistId String
-  media       MediaItem @relation(fields: [imdbId], references: [imdbId])
   imdbId      String
-  user        User      @relation(fields: [userId], references: [id])
   userId      String
   value       Int
   createdAt   DateTime @default(now())
 
-  @@unique([watchlistId, imdbId, userId])
+  item WatchlistItem @relation("ItemRatings", fields: [watchlistId, imdbId], references: [watchlistId, imdbId])
+  user User          @relation(fields: [userId], references: [id])
+
+  @@id([watchlistId, imdbId, userId])
 }
 
 model Person {
-  imdbPersonId String @id
+  imdbPersonId String  @id
   name         String
   photoUrl     String?
 }
@@ -151,7 +154,7 @@ model Session {
 
 model VerificationToken {
   identifier String
-  token      String @unique
+  token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
