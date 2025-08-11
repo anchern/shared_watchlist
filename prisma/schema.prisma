@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  bio           String?
+  passwordHash  String?
+  friends       Friendship[] @relation("UserFriends")
+  friendOf      Friendship[] @relation("FriendOf")
+  watchlists    Watchlist[]
+  comments      Comment[]
+  ratings       Rating[]
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Friendship {
+  id       String   @id @default(cuid())
+  user     User     @relation("UserFriends", fields: [userId], references: [id])
+  userId   String
+  friend   User     @relation("FriendOf", fields: [friendId], references: [id])
+  friendId String
+  status   String
+
+  @@index([userId, friendId, status])
+}
+
+model Watchlist {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  owner       User     @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  visibility  String   @default("private")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  collaborators WatchlistCollaborator[]
+  items       WatchlistItem[]
+
+  @@index([ownerId])
+}
+
+model WatchlistCollaborator {
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
+  watchlistId String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  role        String
+
+  @@unique([watchlistId, userId])
+}
+
+model MediaItem {
+  imdbId     String @id
+  title      String
+  type       String
+  year       String?
+  posterUrl  String?
+  plot       String?
+  imdbRating Float?
+  directors  String[]
+  actors     String[]
+  watchlists WatchlistItem[]
+}
+
+model WatchlistItem {
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
+  watchlistId String
+  media       MediaItem @relation(fields: [imdbId], references: [imdbId])
+  imdbId      String
+  addedBy     String
+  notes       String?
+  status      String?   @default("planned")
+  createdAt   DateTime  @default(now())
+  position    Int       @default(0)
+  comments    Comment[]
+  ratings     Rating[]
+
+  @@id([watchlistId, imdbId])
+  @@index([watchlistId, position])
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
+  watchlistId String
+  media       MediaItem @relation(fields: [imdbId], references: [imdbId])
+  imdbId      String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  text        String
+  createdAt   DateTime  @default(now())
+}
+
+model Rating {
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
+  watchlistId String
+  media       MediaItem @relation(fields: [imdbId], references: [imdbId])
+  imdbId      String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  value       Int
+  createdAt   DateTime @default(now())
+
+  @@unique([watchlistId, imdbId, userId])
+}
+
+model Person {
+  imdbPersonId String @id
+  name         String
+  photoUrl     String?
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
